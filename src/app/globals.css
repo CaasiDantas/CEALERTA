@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root, .leaflet-container {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.leaflet-geosearch-bar {
+  z-index: 1000;
+  border: none !important;
+  background: transparent !important;
+  margin-top: 20px !important;
+  margin-right: 20px !important;
+}
+
+.leaflet-geosearch-bar form {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  padding: 4px 10px !important;
+  background-color: white !important;
+  width: 300px !important;
+}
+
+.leaflet-geosearch-bar input {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  color: #374151 !important;
+  padding: 8px !important;
+}
+
+.leaflet-geosearch-bar .results {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  margin-top: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.leaflet-geosearch-bar .results > div {
+  padding: 10px 15px !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  cursor: pointer !important;
+}
+
+.leaflet-geosearch-bar .results > div:hover {
+  background-color: #f9fafb !important;
+  color: #ef4444 !important;
+}
