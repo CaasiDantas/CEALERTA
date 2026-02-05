@@ -308,23 +308,22 @@ export default function Login() {
               {isRegistering ? 'Já tem uma conta?' : 'Ainda não tem conta?'}
             </p>
             <button 
-              onClick={() => setIsRegistering(!isRegistering)}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                color: '#ef4444', 
-                fontWeight: '700', 
-                cursor: 'pointer', 
-                fontSize: isMobile ? '14px' : '15px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '2px solid #fee2e2',
-                backgroundColor: '#fef2f2',
-                width: isMobile ? '100%' : 'auto'
-              }}
-            >
-              {isRegistering ? 'Faça login aqui' : 'Criar uma conta'}
-            </button>
+            onClick={() => setIsRegistering(!isRegistering)}
+            style={{ 
+              background: 'none', 
+              border: '2px solid #fee2e2', 
+              color: '#ef4444', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              fontSize: isMobile ? '14px' : '15px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              backgroundColor: '#fef2f2',
+              width: isMobile ? '100%' : 'auto'
+            }}
+          >
+            {isRegistering ? 'Faça login aqui' : 'Criar uma conta'}
+          </button>
           </div>
 
         </div>
