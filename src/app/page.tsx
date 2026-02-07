@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { 
   ShieldAlert, MapPin, MousePointer2, 
   MessageSquare, User, Map as MapIcon, LogOut, LogIn, Phone,
-  Menu, X
+  Menu, X, Sun, Moon
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -42,18 +42,44 @@ export default function Home() {
   const [incidents, setIncidents] = useState([]);
   const [user, setUser] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Adicionado
+  const [idToDelete, setIdToDelete] = useState<string | null>(null); // Adicionado
   const [tempCoords, setTempCoords] = useState<any>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter();
+
+  // Cores Dinâmicas
+  const theme = {
+    bg: isDarkMode ? '#111827' : '#f9fafb',
+    sidebar: isDarkMode ? '#1f2937' : 'white',
+    text: isDarkMode ? '#f9fafb' : '#111827',
+    subtext: isDarkMode ? '#9ca3af' : '#6b7280',
+    border: isDarkMode ? '#374151' : '#e5e7eb',
+    card: isDarkMode ? '#1f2937' : 'white',
+    hover: isDarkMode ? '#374151' : '#f3f4f6'
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
+
+    // Lógica de Horário para Tema Automático (17:00 às 05:00)
+    const checkTimeForTheme = () => {
+      const hour = new Date().getHours();
+      if (hour >= 17 || hour < 5) {
+        setIsDarkMode(true);
+      } else {
+        setIsDarkMode(false);
+      }
+    };
     
+    checkTimeForTheme();
     fetchIncidents();
+    
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -102,10 +128,21 @@ export default function Home() {
     }
   }
 
+  // Função alterada para abrir o modal em vez do confirm nativo
   async function deleteIncident(id: string) {
-    if (!confirm("Excluir este relato permanentemente?")) return;
-    const { error } = await supabase.from('incidents').delete().eq('id', id);
-    if (!error) fetchIncidents();
+    setIdToDelete(id);
+    setShowDeleteModal(true);
+  }
+
+  // Função para confirmar a exclusão
+  async function confirmDelete() {
+    if (!idToDelete) return;
+    const { error } = await supabase.from('incidents').delete().eq('id', idToDelete);
+    if (!error) {
+      fetchIncidents();
+      setShowDeleteModal(false);
+      setIdToDelete(null);
+    }
   }
 
   const NavButton = ({ id, icon: Icon, label }: any) => (
@@ -119,21 +156,21 @@ export default function Home() {
         alignItems: 'center', 
         gap: isMobile ? '8px' : '12px', 
         width: '100%', 
-        padding: isMobile ? '10px 12px' : '14px 18px',
+        padding: isMobile ? '10px 12px' : (isSidebarCollapsed ? '14px 0' : '14px 18px'),
         border: 'none', 
         borderRadius: isMobile ? '10px' : '14px', 
         cursor: 'pointer', 
         transition: '0.3s', 
         fontSize: isMobile ? '14px' : '15px', 
         fontWeight: '600',
-        backgroundColor: activeTab === id ? '#fef2f2' : 'transparent',
-        color: activeTab === id ? '#ef4444' : '#6b7280',
+        backgroundColor: activeTab === id ? (isDarkMode ? '#ef444420' : '#fef2f2') : 'transparent',
+        color: activeTab === id ? '#ef4444' : theme.subtext,
         justifyContent: isMobile ? 'center' : (isSidebarCollapsed ? 'center' : 'flex-start'),
         flexDirection: isMobile ? 'column' : 'row',
         textAlign: isMobile ? 'center' : 'left'
       }}
     >
-      <Icon size={isMobile ? 20 : 20} /> 
+      <Icon size={20} /> 
       {(!isSidebarCollapsed || isMobile) && <span style={{ fontSize: isMobile ? '11px' : 'inherit' }}>{label}</span>}
     </button>
   );
@@ -144,8 +181,8 @@ export default function Home() {
       bottom: 0,
       left: 0,
       right: 0,
-      backgroundColor: 'white',
-      borderTop: '1px solid #e5e7eb',
+      backgroundColor: theme.sidebar,
+      borderTop: `1px solid ${theme.border}`,
       display: 'flex',
       justifyContent: 'space-around',
       alignItems: 'center',
@@ -163,19 +200,19 @@ export default function Home() {
           bottom: '70px',
           left: '10px',
           right: '10px',
-          backgroundColor: 'white',
+          backgroundColor: theme.sidebar,
           borderRadius: '16px',
           padding: '20px',
           boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-          border: '1px solid #e5e7eb',
+          border: `1px solid ${theme.border}`,
           zIndex: 999,
           maxHeight: '70vh',
           overflowY: 'auto'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <span style={{ fontWeight: '700', color: '#111827', fontSize: '16px' }}>Contatos de Emergência</span>
+            <span style={{ fontWeight: '700', color: theme.text, fontSize: '16px' }}>Contatos de Emergência</span>
             <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-              <X size={20} color="#6b7280" />
+              <X size={20} color={theme.subtext} />
             </button>
           </div>
           
@@ -189,10 +226,10 @@ export default function Home() {
               { n: '199', t: 'Defesa Civil', d: 'Desastres naturais' }
             ].map(num => (
               <div key={num.n} style={{ 
-                border: '1px solid #fee2e2', 
+                border: isDarkMode ? '1px solid #ef444440' : '1px solid #fee2e2', 
                 borderRadius: '12px', 
                 padding: '14px',
-                backgroundColor: '#fef2f2',
+                backgroundColor: isDarkMode ? '#ef444410' : '#fef2f2',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '4px'
@@ -203,7 +240,7 @@ export default function Home() {
                       width: '36px', 
                       height: '36px', 
                       borderRadius: '50%', 
-                      backgroundColor: '#fee2e2', 
+                      backgroundColor: isDarkMode ? '#ef444420' : '#fee2e2', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
@@ -212,8 +249,8 @@ export default function Home() {
                       <span style={{ fontSize: '14px', fontWeight: '800', color: '#ef4444' }}>{num.n}</span>
                     </div>
                     <div>
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#111827' }}>{num.t}</span>
-                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '2px 0 0 0', lineHeight: '1.2' }}>{num.d}</p>
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: theme.text }}>{num.t}</span>
+                      <p style={{ fontSize: '12px', color: theme.subtext, margin: '2px 0 0 0', lineHeight: '1.2' }}>{num.d}</p>
                     </div>
                   </div>
                 </div>
@@ -221,13 +258,13 @@ export default function Home() {
             ))}
           </div>
           
-          <div style={{ marginTop: '20px', borderTop: '1px solid #f3f4f6', paddingTop: '16px' }}>
+          <div style={{ marginTop: '20px', borderTop: `1px solid ${theme.border}`, paddingTop: '16px' }}>
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               style={{ 
                 width: '100%', 
                 padding: '14px', 
-                backgroundColor: '#111827', 
+                backgroundColor: isDarkMode ? '#ef4444' : '#111827', 
                 color: 'white', 
                 border: 'none', 
                 borderRadius: '12px', 
@@ -248,17 +285,18 @@ export default function Home() {
     <main style={{ 
       display: 'flex', 
       height: '100vh', 
-      backgroundColor: '#f9fafb', 
+      backgroundColor: theme.bg, 
       fontFamily: 'Inter, sans-serif',
-      flexDirection: isMobile ? 'column' : 'row'
+      flexDirection: isMobile ? 'column' : 'row',
+      transition: 'background-color 0.3s'
     }}>
       
       {/* Sidebar para desktop */}
       {!isMobile && (
         <aside style={{ 
           width: isSidebarCollapsed ? '80px' : '280px', 
-          backgroundColor: 'white', 
-          borderRight: '1px solid #e5e7eb', 
+          backgroundColor: theme.sidebar, 
+          borderRight: `1px solid ${theme.border}`, 
           display: 'flex', 
           flexDirection: 'column', 
           padding: isSidebarCollapsed ? '32px 10px' : '32px 20px',
@@ -266,17 +304,36 @@ export default function Home() {
           flexShrink: 0
         }}>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px', paddingLeft: '10px' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            marginBottom: '48px', 
+            paddingLeft: isSidebarCollapsed ? '0' : '10px',
+            justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'
+          }}>
             <button 
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0', display: 'flex', alignItems: 'center' }}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                color: theme.subtext, 
+                padding: '0', 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: isSidebarCollapsed ? '100%' : 'auto'
+              }}
             >
-              <Menu size={24} />
+              <span style={{ filter: isDarkMode ? 'invert(100%) hue-rotate(180deg)' : 'none' }}>
+                <Menu size={24} />
+              </span>
             </button>
             {!isSidebarCollapsed && (
               <>
                 <ShieldAlert size={32} color="#ef4444" />
-                <span style={{ fontWeight: '900', fontSize: '1.4rem', color: '#111827', letterSpacing: '-1px' }}>CEALERTA</span>
+                <span style={{ fontWeight: '900', fontSize: '1.4rem', color: theme.text, letterSpacing: '-1px' }}>CEALERTA</span>
               </>
             )}
           </div>
@@ -286,8 +343,30 @@ export default function Home() {
             <NavButton id="chat" icon={MessageSquare} label="Comunidade" />
             <NavButton id="profile" icon={User} label="Meu Perfil" />
 
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: isSidebarCollapsed ? '14px 0' : '14px 18px',
+                border: 'none',
+                borderRadius: '14px',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: theme.subtext,
+                justifyContent: isSidebarCollapsed ? 'center' : 'flex-start',
+                fontWeight: '600',
+                transition: '0.3s'
+              }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              {!isSidebarCollapsed && <span>{isDarkMode ? 'Modo Claro' : 'Modo Escuro'}</span>}
+            </button>
+
             {!isSidebarCollapsed && (
-              <div style={{ marginTop: '24px', padding: '15px', backgroundColor: '#fef2f2', borderRadius: '16px', border: '1px solid #fee2e2' }}>
+              <div style={{ marginTop: '24px', padding: '15px', backgroundColor: isDarkMode ? '#ef444410' : '#fef2f2', borderRadius: '16px', border: isDarkMode ? '1px solid #ef444440' : '1px solid #fee2e2' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444', marginBottom: '12px' }}>
                   <Phone size={16} />
                   <span style={{ fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contatos de Emergência</span>
@@ -302,12 +381,12 @@ export default function Home() {
                     { n: '194', t: 'Polícia Civil', d: 'Investigações' },
                     { n: '199', t: 'Defesa Civil', d: 'Desastres naturais' }
                   ].map(num => (
-                    <div key={num.n} style={{ borderBottom: '1px solid #fee2e2', paddingBottom: '8px' }}>
+                    <div key={num.n} style={{ borderBottom: `1px solid ${isDarkMode ? '#ef444420' : '#fee2e2'}`, paddingBottom: '8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px', color: '#111827', fontWeight: '700' }}>{num.n}</span>
+                        <span style={{ fontSize: '13px', color: theme.text, fontWeight: '700' }}>{num.n}</span>
                         <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: '800' }}>{num.t}</span>
                       </div>
-                      <p style={{ fontSize: '10px', color: '#6b7280', margin: '2px 0 0 0', lineHeight: '1.2' }}>{num.d}</p>
+                      <p style={{ fontSize: '10px', color: theme.subtext, margin: '2px 0 0 0', lineHeight: '1.2' }}>{num.d}</p>
                     </div>
                   ))}
                 </div>
@@ -315,12 +394,12 @@ export default function Home() {
             )}
           </nav>
 
-          <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '20px' }}>
+          <div style={{ borderTop: `1px solid ${theme.border}`, paddingTop: '20px' }}>
             {user ? (
               <button 
                 onClick={() => supabase.auth.signOut()} 
                 style={{ 
-                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '12px 18px', 
+                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: isSidebarCollapsed ? '12px 0' : '12px 18px', 
                   color: '#9ca3af', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '600',
                   transition: '0.2s', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'
                 }}
@@ -331,8 +410,8 @@ export default function Home() {
               <button 
                 onClick={() => router.push('/login')} 
                 style={{ 
-                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '14px 18px', 
-                  backgroundColor: '#111827', color: 'white', border: 'none', borderRadius: '12px', 
+                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: isSidebarCollapsed ? '14px 0' : '14px 18px', 
+                  backgroundColor: isDarkMode ? '#ef4444' : '#111827', color: 'white', border: 'none', borderRadius: '12px', 
                   cursor: 'pointer', fontWeight: '600', transition: '0.2s', justifyContent: isSidebarCollapsed ? 'center' : 'flex-start'
                 }}
               >
@@ -346,8 +425,8 @@ export default function Home() {
       {/* Header para mobile */}
       {isMobile && (
         <header style={{
-          backgroundColor: 'white',
-          borderBottom: '1px solid #e5e7eb',
+          backgroundColor: theme.sidebar,
+          borderBottom: `1px solid ${theme.border}`,
           padding: '16px 20px',
           display: 'flex',
           alignItems: 'center',
@@ -356,27 +435,35 @@ export default function Home() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ShieldAlert size={24} color="#ef4444" />
-            <span style={{ fontWeight: '900', fontSize: '1.2rem', color: '#111827' }}>CEALERTA</span>
+            <span style={{ fontWeight: '900', fontSize: '1.2rem', color: theme.text }}>CEALERTA</span>
           </div>
           
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer', 
-              color: '#6b7280',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              backgroundColor: isMobileMenuOpen ? '#f3f4f6' : 'transparent'
-            }}
-          >
-            <Phone size={18} />
-            <span style={{ fontSize: '12px', fontWeight: '600' }}>Contatos</span>
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              style={{ background: 'none', border: 'none', color: theme.subtext, padding: '8px' }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                color: theme.subtext,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                backgroundColor: isMobileMenuOpen ? theme.hover : 'transparent'
+              }}
+            >
+              <Phone size={18} />
+              <span style={{ fontSize: '12px', fontWeight: '600' }}>Contatos</span>
+            </button>
+          </div>
         </header>
       )}
 
@@ -384,10 +471,14 @@ export default function Home() {
         flex: 1, 
         position: 'relative', 
         overflow: 'hidden',
-        paddingBottom: isMobile ? '70px' : '0'  // Espaço para a navbar mobile
+        paddingBottom: isMobile ? '70px' : '0'
       }}>
         {activeTab === 'map' && (
-          <div style={{ height: '100%' }}>
+          <div style={{ 
+            height: '100%',
+            filter: isDarkMode ? 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' : 'none',
+            transition: 'filter 0.5s ease'
+          }}>
             <Map incidents={incidents} onMapClick={handleMapClick} user={user} onDelete={deleteIncident} />
             <div style={{ 
               position: 'absolute', 
@@ -395,7 +486,7 @@ export default function Home() {
               left: isMobile ? '50%' : '24px', 
               transform: isMobile ? 'translateX(-50%)' : 'none',
               zIndex: 1000, 
-              backgroundColor: 'white', 
+              backgroundColor: theme.sidebar, 
               padding: isMobile ? '10px 16px' : '12px 20px', 
               borderRadius: '100px', 
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)', 
@@ -403,10 +494,12 @@ export default function Home() {
               alignItems: 'center', 
               gap: '8px',
               maxWidth: isMobile ? '90%' : 'none',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              border: `1px solid ${theme.border}`,
+              filter: isDarkMode ? 'invert(100%) hue-rotate(180deg)' : 'none'
             }}>
               <MousePointer2 size={isMobile ? 14 : 16} color="#3b82f6" />
-              <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: '600', color: '#4b5563' }}>
+              <span style={{ fontSize: isMobile ? '11px' : '12px', fontWeight: '600', color: theme.subtext }}>
                 Clique no mapa para registrar
               </span>
             </div>
@@ -418,18 +511,18 @@ export default function Home() {
             height: '100%', 
             display: 'flex', 
             flexDirection: 'column', 
-            backgroundColor: '#fff',
+            backgroundColor: theme.sidebar,
             overflow: 'hidden' 
           }}>
             <div style={{ 
               padding: isMobile ? '20px' : '40px 60px', 
-              borderBottom: '1px solid #f3f4f6',
+              borderBottom: `1px solid ${theme.border}`,
               flexShrink: 0 
             }}>
-              <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: '800', color: '#111827', margin: 0 }}>
+              <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: '800', color: theme.text, margin: 0 }}>
                 Comunidade
               </h1>
-              <p style={{ color: '#6b7280', marginTop: '8px', fontSize: isMobile ? '14px' : '16px' }}>
+              <p style={{ color: theme.subtext, marginTop: '8px', fontSize: isMobile ? '14px' : '16px' }}>
                 Discussão em tempo real sobre a segurança local.
               </p>
             </div>
@@ -444,7 +537,7 @@ export default function Home() {
               flexDirection: 'column', 
               minHeight: 0 
             }}>
-              <Chat supabase={supabase} user={user} />
+              <Chat supabase={supabase} user={user} isDarkMode={isDarkMode} />
             </div>
           </div>
         )}
@@ -454,9 +547,10 @@ export default function Home() {
             height: '100%', 
             padding: isMobile ? '20px' : '60px', 
             overflowY: 'auto',
-            paddingBottom: isMobile ? '20px' : '60px'
+            paddingBottom: isMobile ? '20px' : '60px',
+            backgroundColor: theme.bg
           }}>
-            <Profile user={user} supabase={supabase} isMobile={isMobile} />
+            <Profile user={user} supabase={supabase} isMobile={isMobile} isDarkMode={isDarkMode} />
           </div>
         )}
       </section>
@@ -464,11 +558,12 @@ export default function Home() {
       {/* Navbar para mobile */}
       {isMobile && <MobileNavBar />}
 
+      {/* MODAL DE CRIAÇÃO */}
       {showModal && (
         <div style={{ 
           position: 'fixed', 
           inset: 0, 
-          backgroundColor: 'rgba(0,0,0,0.6)', 
+          backgroundColor: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)', 
           backdropFilter: 'blur(8px)', 
           display: 'flex', 
           alignItems: 'center', 
@@ -476,7 +571,7 @@ export default function Home() {
           zIndex: 10000 
         }}>
           <div style={{ 
-            backgroundColor: 'white', 
+            backgroundColor: theme.sidebar, 
             padding: isMobile ? '20px' : '32px', 
             borderRadius: '20px', 
             width: '95%', 
@@ -484,18 +579,20 @@ export default function Home() {
             maxHeight: '85vh', 
             overflowY: 'auto', 
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            margin: isMobile ? '20px' : '0'
+            margin: isMobile ? '20px' : '0',
+            border: `1px solid ${theme.border}`
           }}>
             <h2 style={{ 
               fontSize: isMobile ? '1.2rem' : '1.5rem', 
               fontWeight: '800', 
               marginBottom: '8px', 
-              textAlign: 'center' 
+              textAlign: 'center',
+              color: theme.text
             }}>
               O que aconteceu?
             </h2>
             <p style={{ 
-              color: '#6b7280', 
+              color: theme.subtext, 
               textAlign: 'center', 
               marginBottom: '24px', 
               fontSize: isMobile ? '13px' : '14px' 
@@ -512,7 +609,7 @@ export default function Home() {
                   textTransform: 'uppercase', 
                   letterSpacing: '0.05em', 
                   marginBottom: '8px', 
-                  borderBottom: '1px solid #f3f4f6', 
+                  borderBottom: `1px solid ${theme.border}`, 
                   paddingBottom: '4px' 
                 }}>
                   {category}
@@ -525,16 +622,17 @@ export default function Home() {
                       style={{ 
                         padding: isMobile ? '10px 12px' : '12px 16px', 
                         borderRadius: '8px', 
-                        border: '1px solid #e5e7eb', 
-                        background: 'white', 
+                        border: `1px solid ${theme.border}`, 
+                        background: theme.card, 
                         fontWeight: '600', 
                         cursor: 'pointer', 
                         textAlign: 'left',
                         fontSize: isMobile ? '13px' : '14px', 
-                        transition: '0.2s'
+                        transition: '0.2s',
+                        color: theme.text
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.hover}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.card}
                     >
                       {type}
                     </button>
@@ -550,9 +648,9 @@ export default function Home() {
                 marginTop: '10px', 
                 padding: '14px', 
                 border: 'none', 
-                background: '#f3f4f6', 
+                background: theme.hover, 
                 borderRadius: '10px', 
-                color: '#4b5563', 
+                color: theme.subtext, 
                 fontWeight: '700', 
                 cursor: 'pointer',
                 fontSize: isMobile ? '14px' : '16px'
@@ -560,6 +658,53 @@ export default function Home() {
             >
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* NOVO MODAL DE EXCLUSÃO */}
+      {showDeleteModal && (
+        <div style={{ 
+          position: 'fixed', 
+          inset: 0, 
+          backgroundColor: 'rgba(0,0,0,0.7)', 
+          backdropFilter: 'blur(4px)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 11000 
+        }}>
+          <div style={{ 
+            backgroundColor: theme.sidebar, 
+            padding: '24px', 
+            borderRadius: '20px', 
+            width: '90%', 
+            maxWidth: '400px', 
+            textAlign: 'center', 
+            border: `1px solid ${theme.border}`,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)'
+          }}>
+            <div style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#ef444420', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <ShieldAlert size={28} color="#ef4444" />
+            </div>
+            <h2 style={{ color: theme.text, fontSize: '1.2rem', fontWeight: '800', marginBottom: '8px' }}>Confirmar Exclusão?</h2>
+            <p style={{ color: theme.subtext, fontSize: '14px', marginBottom: '24px', lineHeight: '1.5' }}>
+              Esta ação removerá o relato permanentemente do mapa de risco da comunidade.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setShowDeleteModal(false)} 
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: theme.hover, color: theme.text, fontWeight: '600', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                style={{ flex: 1, padding: '12px', borderRadius: '12px', border: 'none', backgroundColor: '#ef4444', color: 'white', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}
