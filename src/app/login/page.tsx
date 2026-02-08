@@ -463,7 +463,11 @@ export default function Login() {
               {isRegistering ? 'Já tem uma conta?' : 'Ainda não tem conta?'}
             </p>
             <button
-              onClick={() => setIsRegistering(!isRegistering)}
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setMessage('');
+                setMessageType('');
+              }}
               style={{
                 background: 'none',
                 border: '2px solid #fee2e2',
