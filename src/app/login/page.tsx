@@ -76,6 +76,10 @@ export default function Login() {
       } else {
         setMessage('Conta criada! Verifique seu e-mail.');
         setMessageType('success');
+        setTimeout(() => {
+          setMessage('');
+          setMessageType('');
+        }, 3000);
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
